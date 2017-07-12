@@ -1,0 +1,265 @@
+name: "test"
+input: "data"
+input_dim: 1
+input_dim: 3
+input_dim: 128
+input_dim: 64
+
+layer {
+    type: "Convolution"
+    bottom: "map/TensorArrayStack"
+    top: "conv1_1"
+    name: "conv1_1"
+}
+layer {
+    type: "Convolution"
+    bottom: "conv1_1"
+    top: "conv1_2"
+    name: "conv1_2"
+}
+layer {
+    type: "MaxPool2d"
+    bottom: "conv1_2"
+    top: "pool1"
+    name: "pool1"
+}
+layer {
+    type: "Convolution"
+    bottom: "pool1"
+    top: "conv2_1/1"
+    name: "conv2_1/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv2_1/1"
+    top: "Dropout"
+    name: "Dropout"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout"
+    top: "conv2_1/2"
+    name: "conv2_1/2"
+}
+layer {
+    type: "Eltwise"
+    bottom: "pool1"
+    bottom: "conv2_1/2"
+    top: "add"
+    name: "add"
+}
+layer {
+    type: "BatchNorm"
+    bottom: "add"
+    top: "conv2_3/bn/batchnorm"
+    name: "conv2_3/bn/batchnorm"
+}
+layer {
+    type: "ELU"
+    bottom: "conv2_3/bn/batchnorm"
+    top: "Elu"
+    name: "Elu"
+}
+layer {
+    type: "Convolution"
+    bottom: "Elu"
+    top: "conv2_3/1"
+    name: "conv2_3/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv2_3/1"
+    top: "Dropout_1"
+    name: "Dropout_1"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout_1"
+    top: "conv2_3/2"
+    name: "conv2_3/2"
+}
+layer {
+    type: "Eltwise"
+    bottom: "add"
+    bottom: "conv2_3/2"
+    top: "add_1"
+    name: "add_1"
+}
+layer {
+    type: "BatchNorm"
+    bottom: "add_1"
+    top: "conv3_1/bn/batchnorm"
+    name: "conv3_1/bn/batchnorm"
+}
+layer {
+    type: "ELU"
+    bottom: "conv3_1/bn/batchnorm"
+    top: "Elu_1"
+    name: "Elu_1"
+}
+layer {
+    type: "Convolution"
+    bottom: "Elu_1"
+    top: "conv3_1/1"
+    name: "conv3_1/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv3_1/1"
+    top: "Dropout_2"
+    name: "Dropout_2"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout_2"
+    top: "conv3_1/2"
+    name: "conv3_1/2"
+}
+layer {
+    type: "Convolution"
+    bottom: "add_1"
+    top: "conv3_1/projection"
+    name: "conv3_1/projection"
+}
+layer {
+    type: "Eltwise"
+    bottom: "conv3_1/projection"
+    bottom: "conv3_1/2"
+    top: "add_2"
+    name: "add_2"
+}
+layer {
+    type: "BatchNorm"
+    bottom: "add_2"
+    top: "conv3_3/bn/batchnorm"
+    name: "conv3_3/bn/batchnorm"
+}
+layer {
+    type: "ELU"
+    bottom: "conv3_3/bn/batchnorm"
+    top: "Elu_2"
+    name: "Elu_2"
+}
+layer {
+    type: "Convolution"
+    bottom: "Elu_2"
+    top: "conv3_3/1"
+    name: "conv3_3/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv3_3/1"
+    top: "Dropout_3"
+    name: "Dropout_3"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout_3"
+    top: "conv3_3/2"
+    name: "conv3_3/2"
+}
+layer {
+    type: "Eltwise"
+    bottom: "add_2"
+    bottom: "conv3_3/2"
+    top: "add_3"
+    name: "add_3"
+}
+layer {
+    type: "BatchNorm"
+    bottom: "add_3"
+    top: "conv4_1/bn/batchnorm"
+    name: "conv4_1/bn/batchnorm"
+}
+layer {
+    type: "ELU"
+    bottom: "conv4_1/bn/batchnorm"
+    top: "Elu_3"
+    name: "Elu_3"
+}
+layer {
+    type: "Convolution"
+    bottom: "Elu_3"
+    top: "conv4_1/1"
+    name: "conv4_1/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv4_1/1"
+    top: "Dropout_4"
+    name: "Dropout_4"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout_4"
+    top: "conv4_1/2"
+    name: "conv4_1/2"
+}
+layer {
+    type: "Convolution"
+    bottom: "add_3"
+    top: "conv4_1/projection"
+    name: "conv4_1/projection"
+}
+layer {
+    type: "Eltwise"
+    bottom: "conv4_1/projection"
+    bottom: "conv4_1/2"
+    top: "add_4"
+    name: "add_4"
+}
+layer {
+    type: "BatchNorm"
+    bottom: "add_4"
+    top: "conv4_3/bn/batchnorm"
+    name: "conv4_3/bn/batchnorm"
+}
+layer {
+    type: "ELU"
+    bottom: "conv4_3/bn/batchnorm"
+    top: "Elu_4"
+    name: "Elu_4"
+}
+layer {
+    type: "Convolution"
+    bottom: "Elu_4"
+    top: "conv4_3/1"
+    name: "conv4_3/1"
+}
+layer {
+    type: "Dropout"
+    bottom: "conv4_3/1"
+    top: "Dropout_5"
+    name: "Dropout_5"
+}
+layer {
+    type: "Convolution"
+    bottom: "Dropout_5"
+    top: "conv4_3/2"
+    name: "conv4_3/2"
+}
+layer {
+    type: "Eltwise"
+    bottom: "add_4"
+    bottom: "conv4_3/2"
+    top: "add_5"
+    name: "add_5"
+}
+layer {
+    type: "Flatten"
+    bottom: "add_5"
+    top: "Flatten"
+    name: "Flatten"
+}
+layer {
+    type: "Dropout"
+    bottom: "Flatten"
+    top: "Dropout_6"
+    name: "Dropout_6"
+}
+layer {
+    type: "InnerProduct"
+    bottom: "fc1"
+    top: "fc1"
+    name: "fc1"
+}
