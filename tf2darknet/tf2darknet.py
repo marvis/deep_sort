@@ -14,6 +14,7 @@ layers = []
 from prototxt import *
 
 def get_scope(name):
+    return name
     if type(name) == list:
         out = []
         for item in name:

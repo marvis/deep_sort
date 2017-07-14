@@ -51,6 +51,8 @@ def create_inner_block(
         bias_initializer=tf.zeros_initializer(), regularizer=None,
         increase_dim=False, summarize_activations=True):
     n = incoming.get_shape().as_list()[-1]
+    #incoming = tf.Print(incoming, [incoming.get_shape()], message="incoming shape")
+    #incoming = tf.Print(incoming, [incoming[0][0][0][:10]], message="incoming:")
     stride = 1
     if increase_dim:
         n *= 2
@@ -72,7 +74,6 @@ def create_inner_block(
         biases_initializer=bias_initializer, weights_regularizer=regularizer,
         scope=scope + "/2")
     return incoming
-
 
 def residual_block(incoming, scope, nonlinearity=tf.nn.elu,
                    weights_initializer=tf.truncated_normal_initializer(1e3),
@@ -102,13 +103,17 @@ def _create_network(incoming, num_classes, reuse=None, l2_normalize=True,
 
     def batch_norm_fn(x):
         return slim.batch_norm(x, scope=tf.get_variable_scope().name + "/bn")
-
+ 
     network = incoming
+    network = tf.Print(network, [network], message='conv1_1 in')
+    
     network = slim.conv2d(
         network, 32, [3, 3], stride=1, activation_fn=nonlinearity,
         padding="SAME", normalizer_fn=batch_norm_fn, scope="conv1_1",
         weights_initializer=conv_weight_init, biases_initializer=conv_bias_init,
         weights_regularizer=conv_regularizer)
+    network = tf.Print(network, [network], message='conv1_1 out')
+
     if create_summaries:
         tf.summary.histogram(network.name + "/activations", network)
         tf.summary.image("conv1_1/weights", tf.transpose(
@@ -122,7 +127,8 @@ def _create_network(incoming, num_classes, reuse=None, l2_normalize=True,
     if create_summaries:
         tf.summary.histogram(network.name + "/activations", network)
 
-    network = slim.max_pool2d(network, [3, 3], [2, 2], scope="pool1")
+    #network = slim.max_pool2d(network, [3, 3], [2, 2], scope="pool1")
+    network = slim.max_pool2d(network, [2, 2], [2, 2], scope="pool1")
 
     network = residual_block(
         network, "conv2_1", nonlinearity, conv_weight_init, conv_bias_init,
@@ -137,6 +143,8 @@ def _create_network(incoming, num_classes, reuse=None, l2_normalize=True,
         network, "conv3_1", nonlinearity, conv_weight_init, conv_bias_init,
         conv_regularizer, increase_dim=True,
         summarize_activations=create_summaries)
+    return network, network
+
     network = residual_block(
         network, "conv3_3", nonlinearity, conv_weight_init, conv_bias_init,
         conv_regularizer, increase_dim=False,
@@ -290,8 +298,11 @@ def extract_image_patch(image, bbox, patch_shape):
     if np.any(bbox[:2] >= bbox[2:]):
         return None
     sx, sy, ex, ey = bbox
+    print 'box', bbox
     image = image[sy:ey, sx:ex]
+    print '1',image.shape
     image = cv2.resize(image, patch_shape[::-1])
+    print '2',image.shape
 
     return image
 
@@ -300,6 +311,7 @@ def _create_image_encoder(preprocess_fn, factory_fn, image_shape, batch_size=32,
                          session=None, checkpoint_path=None,
                          loss_mode="cosine"):
     image_var = tf.placeholder(tf.uint8, (None, ) + image_shape)
+    image_var = tf.Print(image_var, [image_var], message="placeholder")
 
     preprocessed_image_var = tf.map_fn(
         lambda x: preprocess_fn(x, is_training=False),
@@ -309,6 +321,7 @@ def _create_image_encoder(preprocess_fn, factory_fn, image_shape, batch_size=32,
     feature_var, _ = factory_fn(
         preprocessed_image_var, l2_normalize=l2_normalize, reuse=None)
     feature_dim = feature_var.get_shape().as_list()[-1]
+    
 
     if session is None:
         session = tf.Session()
@@ -318,11 +331,72 @@ def _create_image_encoder(preprocess_fn, factory_fn, image_shape, batch_size=32,
             checkpoint_path, slim.get_variables_to_restore())
         session.run(init_assign_op, feed_dict=init_feed_dict)
 
+    def get_print_val(sess, name, feed_dict=None, doprint=True):
+        if feed_dict:
+            output = sess.run(name, feed_dict=feed_dict)
+            if doprint:
+                print name,' transposed ', output.transpose(0,3,1,2).shape
+                print output.transpose(0,3,1,2)[0,0,0,0:20]
+                print output.transpose(0,3,1,2)[0,0,1,0:20]
+        else:
+            output = sess.run(name)
+            if doprint:
+                print name, output.shape
+                print output
+        return output
+        
     def encoder(data_x):
         out = np.zeros((len(data_x), feature_dim), np.float32)
-        _run_in_batches(
-            lambda x: session.run(feature_var, feed_dict=x),
-            {image_var: data_x}, out, batch_size)
+        print 'datax:', data_x.shape
+        print(data_x[0,0,0:100,0])
+        print(data_x[0,0,0:100,1])
+        print(data_x[0,0,0:100,2])
+        #print(data_x[1,0,0:100,0])
+        #print(data_x[1,0,0:100,1])
+        #print(data_x[1,0,0:100,2])
+        
+        
+        #_run_in_batches(
+        #    lambda x: session.run(feature_var, feed_dict=x),
+        #    #lambda x: session.run('conv1_1/Elu:0', feed_dict=x),
+        #    {image_var: data_x}, out, batch_size)
+        if 1 :
+            elu_1_data = get_print_val(session, 'Elu_1:0',feed_dict={image_var: data_x} )
+            get_print_val(session, 'conv3_1/1/Elu:0',feed_dict={image_var: data_x} )
+            
+            #else:
+            conv3_1_weights = get_print_val(session, 'conv3_1/1/weights:0',doprint=False)
+            mean = get_print_val(session, 'conv3_1/1/conv3_1/1/bn/moving_mean:0') 
+            var = get_print_val(session, 'conv3_1/1/conv3_1/1/bn/moving_variance:0')
+            offset = get_print_val(session, 'conv3_1/1/conv3_1/1/bn/beta:0')
+            print 'offset ', offset.shape, type(offset[0])
+            session.close()
+            
+            scale = np.ones(offset.shape, dtype = np.float32)
+            print 'scale ', scale.shape, type(scale[0])
+
+            ####### new graph
+            elu_1 = tf.placeholder(tf.float32, (None, ) + (64,32, 32))
+            print 'elu_1 shape', elu_1.get_shape()
+            dd = tf.nn.conv2d(elu_1, conv3_1_weights, [1,2, 2, 1],'SAME',name='conv3_1')
+            dd = tf.nn.batch_normalization(dd,mean, var, offset, scale, 1e-3 )
+            dd = tf.nn.elu(dd, name='conv3_1/elu')
+
+            #cn = elu_1.get_shape().as_list()[-1]*2
+            #scope = 'conv3_1'
+            #conv_weight_init = tf.truncated_normal_initializer(stddev=1e-3)
+            #conv_bias_init = tf.zeros_initializer()
+            #conv_regularizer = slim.l2_regularizer(1e-8)
+            #elu_1_conv = slim.conv2d(
+            #    elu_1, cn, [3, 3], stride=2, activation_fn=tf.nn.elu, padding="SAME",
+            #    normalizer_fn=_batch_norm_fn, weights_initializer=conv_weight_init,
+            #    biases_initializer=conv_bias_init, weights_regularizer=conv_regularizer,
+            #    scope=scope + "/1")
+            sess = tf.Session()
+            get_print_val(sess, 'conv3_1:0',feed_dict={elu_1: elu_1_data} )
+             
+            ############
+
         return out
 
     return encoder
@@ -347,6 +421,10 @@ def create_box_encoder(model_filename, batch_size=32, loss_mode="cosine"):
         image_patches = []
         for box in boxes:
             patch = extract_image_patch(image, box, image_shape[:2])
+            print 'patch',patch.shape, box
+            print patch[0,0:20,0]
+            print patch[0,0:20,1]
+            print patch[0,0:20,2]
             if patch is None:
                 print("WARNING: Failed to extract image patch: %s." % str(box))
                 patch = np.random.uniform(
@@ -414,9 +492,17 @@ def generate_detections(encoder, mot_dir, output_dir, detection_dir=None):
             if frame_idx not in image_filenames:
                 print("WARNING could not find image for frame %d" % frame_idx)
                 continue
+            print(image_filenames[frame_idx])
             bgr_image = cv2.imread(
                 image_filenames[frame_idx], cv2.IMREAD_COLOR)
+            print 'bgr_image', bgr_image.shape
+            print bgr_image[0,0:20, 0]
+            print bgr_image[0,0:20, 1]
+            print bgr_image[0,0:20, 2]
             features = encoder(bgr_image, rows[:, 2:6].copy())
+            print('featurea:\n')
+            #print(features[0:100])
+            exit(0)
             detections_out += [np.r_[(row, feature)] for row, feature
                                in zip(rows, features)]
 
